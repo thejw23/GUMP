@@ -4,9 +4,7 @@ error_reporting(-1);
 
 ini_set('display_errors', 1);
 
-require "gump.class.php";
-
-$validator = new GUMP();
+$validator = new \Utils\GUMP();
 
 $rules = array(
 	'missing'   	=> 'required',
@@ -84,7 +82,7 @@ echo "\nTHESE ALL FAIL:\n\n";
 $validator->validate($invalid_data, $rules);
 
 // Print out the errors using the new get_readable_errors() method:
-print_r($validator->get_readable_errors());
+print_r($validator->get_errors());
 
 if($validator->validate($valid_data, $rules)) {
 	echo "\nTHESE ALL SUCCEED:\n\n";

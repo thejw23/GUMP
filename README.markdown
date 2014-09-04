@@ -2,6 +2,15 @@
 
 GUMP is a standalone PHP data validation and filtering class that makes validating any data easy and painless without the reliance on a framework.
 
+# Changes in this fork:
+
+* added namespace Utils
+* removed basic_tags(), en_noise_words(), get_readable_errors() and toString()
+* renamed errors() to get_errors() - more obvious
+* added validate_currency() and validate_valid_phone() by JimmyFoobar 
+* replaced hardcoded class name with get_called_class()
+* TESTS AND EXAMPLED ARE NOT FIXED (yet)
+
 #### There are 2 ways to install GUMP
 
 ###### Install Manually 
@@ -12,9 +21,8 @@ GUMP is a standalone PHP data validation and filtering class that makes validati
 Include it in your project:
 
 ```php
-require "gump.class.php";
 
-$is_valid = GUMP::is_valid($_POST, array(
+$is_valid = \Utils\GUMP::is_valid($_POST, array(
 	'username' => 'required|alpha_numeric',
 	'password' => 'required|max_len,100|min_len,6'
 ));
@@ -69,11 +77,8 @@ validate(array $input, array $ruleset);
 // Filters input data according to the provided filterset (see example)
 filter(array $input, array $filterset); 
 
-// Returns human readable error text in an array or string
-get_readable_errors($convert_to_string = false); 
-
-// Override field names with readable ones for errors
-set_field_name($field, $readable_name);
+// Returns an array with errors
+get_errors(); 
 ```
 
 # Example (Long format)
@@ -83,9 +88,7 @@ The following example is part of a registration form, the flow should be pretty 
 ```php
 # Note that filters and validators are separate rule sets and method calls. There is a good reason for this.
 
-require "gump.class.php";
-
-$gump = new GUMP();
+$gump = new \Utils\GUMP();
 
 $_POST = $gump->sanitize($_POST); // You don't have to sanitize, but it's safest to do so.
 
@@ -108,7 +111,7 @@ $gump->filter_rules(array(
 $validated_data = $gump->run($_POST);
 
 if($validated_data === false) {
-	echo $gump->get_readable_errors(true);
+	print_r($gump->get_errors());
 } else {
 	print_r($validated_data); // validation successful
 }
@@ -123,7 +126,7 @@ $data = array(
 	'street' => '6 Avondans Road'
 );
 
-$validated = GUMP::is_valid($data, array(
+$validated = \Utils\GUMP::is_valid($data, array(
 	'street' => 'required|street_address'
 ));
 
@@ -209,11 +212,9 @@ Filters can be any PHP function that returns a string. You don't need to create 
 * base64_decode `Base64 decode the input`
 * sha1 `Encrypt the input with the secure sha1 algorithm`
 * md5 `MD5 encode the input`
-* noise_words `Remove noise words from string`
 * json_encode `Create a json representation of the input`
 * json_decode `Decode a json string`
 * rmpunctuation `Remove all known punctuation characters from a string`
-* basic_tags `Remove all layout orientated HTML tags from text. Leaving only basic tags`
 * whole_number `Ensure that the provided numeric value is represented as a whole number`
 
 #  Creating your own validators and filters
@@ -221,15 +222,13 @@ Filters can be any PHP function that returns a string. You don't need to create 
 Adding custom validators and filters is made easy by using callback functions.
 
 ```php
-require("gump.class.php");
-
 /* 
    Create a custom validation rule named "is_object".   
    The callback receives 3 arguments:
    The field to validate, the values being validated, and any parameters used in the validation rule.
    It should return a boolean value indicating whether the value is valid.
 */
-GUMP::add_validator("is_object", function($field, $input, $param = NULL) {
+\Utils\GUMP::add_validator("is_object", function($field, $input, $param = NULL) {
     return is_object($input[$field]);
 });
 
@@ -238,7 +237,7 @@ GUMP::add_validator("is_object", function($field, $input, $param = NULL) {
    The callback function receives two arguments:
    The value to filter, and any parameters used in the filter rule. It should returned the filtered value.
 */
-GUMP::add_filter("upper", function($value, $params = NULL) {
+\Utils\GUMP::add_filter("upper", function($value, $params = NULL) {
     return strtoupper($value);
 });
 
@@ -248,9 +247,7 @@ Alternately, you can simply create your own class that extends the GUMP class.
 
 ```php
 
-require("gump.class.php");
-
-class MyClass extends GUMP
+class MyClass extends \Utils\GUMP
 {
 	public function filter_myfilter($value, $param = NULL)
 	{

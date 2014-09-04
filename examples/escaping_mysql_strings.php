@@ -1,9 +1,6 @@
-#!/usr/bin/php -q
 <?php
 
-require "../gump.class.php";
-
-$validator = new GUMP();
+$validator = new \Utils\GUMP();
 
 $_POST = array(
 	'username' => "my username",
@@ -13,7 +10,7 @@ $_POST = array(
 $validator->sanitize($_POST);
 
 $filters = array(
-	'username' => 'noise_words',
+	'username' => 'trim',
 	'password' => 'trim|strtolower|addslashes'
 );
 
@@ -29,7 +26,7 @@ $_POST = array(
 );
 
 $filters = array(
-	'username' => 'noise_words',
+	'username' => 'trim',
 	'password' => 'trim|strtolower'
 );
 

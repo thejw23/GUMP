@@ -1,9 +1,6 @@
-#!/usr/bin/php -q
 <?php
 
-require "../gump.class.php";
-
-$validator = new GUMP();
+$validator = new \Utils\GUMP();
 
 // Set the data
 
@@ -70,5 +67,5 @@ else
 	
 	// Or you can simply use the built in helper to generate the error messages for you
 	// Passing a boolean true to is returns the errors as html, otherwise it returns an array
-	echo $validator->get_readable_errors(true);
+	echo $validator->get_errors();
 }

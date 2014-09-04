@@ -1,9 +1,6 @@
-#!/usr/bin/php -q
 <?php
 
-require "../gump.class.php";
-
-$validator = new GUMP();
+$validator = new \Utils\GUMP();
 
 $_POST = array(
 	'string' => '<script>alert(1); $("body").remove(); </script>'

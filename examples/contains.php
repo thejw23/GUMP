@@ -1,9 +1,6 @@
-#!/usr/bin/php -q
 <?php
 
-require "../gump.class.php";
-
-$validator = new GUMP();
+$validator = new \Utils\GUMP();
 
 $rules = array(
   'account_type' => "required|contains,pro free basic premium",
@@ -23,7 +20,7 @@ $valid = $validator->validate(
 );
 
 if($valid !== true) {
-  echo $validator->get_readable_errors(true);
+  echo $validator->get_errors();
 } else {
   echo "Validation passed! \n";
 }
@@ -41,7 +38,7 @@ $invalid = $validator->validate(
 );
 
 if($invalid !== true) {
-  echo $validator->get_readable_errors(true);
+  echo $validator->get_errors();
   echo "\n\n";
 } else {
   echo "Validation passed!\n\n";

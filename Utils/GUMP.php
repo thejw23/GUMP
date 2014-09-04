@@ -1,4 +1,4 @@
-<?php
+<?php namespace Utils;
 
 /**
  * GUMP - A fast, extensible PHP input validation class
@@ -31,16 +31,6 @@ class GUMP
 
 	// ** ------------------------- Validation Data ------------------------------- ** //
 
-	public static $basic_tags     = "<br><p><a><strong><b><i><em><img><blockquote><code><dd><dl><hr><h1><h2><h3><h4><h5><h6><label><ul><li><span><sub><sup>";
-
-	public static $en_noise_words = "about,after,all,also,an,and,another,any,are,as,at,be,because,been,before,
-									 being,between,both,but,by,came,can,come,could,did,do,each,for,from,get,
-									 got,has,had,he,have,her,here,him,himself,his,how,if,in,into,is,it,its,it's,like,
-									 make,many,me,might,more,most,much,must,my,never,now,of,on,only,or,other,
-									 our,out,over,said,same,see,should,since,some,still,such,take,than,that,
-									 the,their,them,then,there,these,they,this,those,through,to,too,under,up,
-									 very,was,way,we,well,were,what,where,which,while,who,with,would,you,your,a,
-									 b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z,$,1,2,3,4,5,6,7,8,9,0,_";
 
 	// ** ------------------------- Validation Helpers ---------------------------- ** //
 
@@ -53,12 +43,13 @@ class GUMP
 	 */
 	public static function is_valid(array $data, array $validators)
 	{
-		$gump = new Gump();
+		$class = \get_called_class();
+		$gump = new $class;
 
 		$gump->validation_rules($validators);
 
 		if($gump->run($data) === false) {
-			return $gump->get_readable_errors(false);
+			return $gump->get_errors();
 		} else {
 			return true;
 		}
@@ -72,19 +63,10 @@ class GUMP
 	 */
 	public static function filter_input(array $data, array $filters)
 	{
-		$gump = new Gump();
+		$class = \get_called_class();
+		$gump = new $class;
 
 		return $gump->filter($data, $filters);
-	}
-
-	/**
-	 * Magic method to generate the validation error messages
-	 *
-	 * @return string
-	 */
-	public function __toString()
-	{
-		return $this->get_readable_errors(true);
 	}
 
 	/**
@@ -117,11 +99,11 @@ class GUMP
 	{
 		$method = 'validate_'.$rule;
 		
-		if(method_exists(__CLASS__, $method) || isset(self::$validation_methods[$rule])) {
-			throw new Exception("Validator rule '$rule' already exists.");
+		if(method_exists(__CLASS__, $method) || isset(static::$validation_methods[$rule])) {
+			throw new \Exception("Validator rule '$rule' already exists.");
 		}
 
-		self::$validation_methods[$rule] = $callback;
+		static::$validation_methods[$rule] = $callback;
 
 		return true;
 	}
@@ -138,11 +120,11 @@ class GUMP
 	{
 		$method = 'filter_'.$rule;
 		
-		if(method_exists(__CLASS__, $method) || isset(self::$filter_methods[$rule])) {
-			throw new Exception("Filter rule '$rule' already exists.");
+		if(method_exists(__CLASS__, $method) || isset(static::$filter_methods[$rule])) {
+			throw new \Exception("Filter rule '$rule' already exists.");
 		}
 
-		self::$filter_methods[$rule] = $callback;
+		static::$filter_methods[$rule] = $callback;
 
 		return true;
 	}
@@ -282,16 +264,6 @@ class GUMP
 	}
 
 	/**
-	 * Return the error array from the last validation run
-	 *
-	 * @return array
-	 */
-	public function errors()
-	{
-		return $this->errors;
-	}
-
-	/**
 	 * Perform data validation against the provided ruleset
 	 *
 	 * @access public
@@ -340,10 +312,10 @@ class GUMP
 							$this->errors[] = $result;
 						}
 					}
-					else if (isset(self::$validation_methods[$rule]))
+					else if (isset(static::$validation_methods[$rule]))
 					{
 						if (isset($input[$field])) {
-							$result = call_user_func(self::$validation_methods[$rule], $field, $input, $param);
+							$result = call_user_func(static::$validation_methods[$rule], $field, $input, $param);
 
 							if (!$result) // Validation Failed
 							{
@@ -358,7 +330,7 @@ class GUMP
 					}
 					else
 					{
-						throw new Exception("Validator method '$method' does not exist.");
+						throw new \Exception("Validator method '$method' does not exist.");
 					}
 				}
 			}
@@ -376,132 +348,18 @@ class GUMP
 	 */	
 	public static function set_field_name($field, $readable_name)
 	{
-		self::$fields[$field] = $readable_name;
+		static::$fields[$field] = $readable_name;
 	}
 
+
 	/**
-	 * Process the validation errors and return human readable error messages
+	 * Return the error array from the last validation run
 	 *
-	 * @param bool $convert_to_string = false
-	 * @param string $field_class
-	 * @param string $error_class
 	 * @return array
-	 * @return string
 	 */
-	public function get_readable_errors($convert_to_string = false, $field_class="field", $error_class="error-message")
+	public function get_errors()
 	{
-		if(empty($this->errors)) {
-			return ($convert_to_string)? null : array();
-		}
-
-		$resp = array();
-
-		foreach($this->errors as $e) {
-
-			$field = ucwords(str_replace(array('_','-'), chr(32), $e['field']));
-			$param = $e['param'];
-			
-			// Let's fetch explicit field names if they exist
-			if(array_key_exists($e['field'], self::$fields)) {
-				$field = self::$fields[$e['field']];
-			}
-
-			switch($e['rule']) {
-				case 'mismatch' :
-					$resp[] = "There is no validation rule for <span class=\"$field_class\">$field</span>";
-					break;
-				case 'validate_required':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field is required";
-					break;
-				case 'validate_valid_email':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field is required to be a valid email address";
-					break;
-				case 'validate_max_len':
-					if($param == 1) {
-						$resp[] = "The <span class=\"$field_class\">$field</span> field needs to be shorter than $param character";
-					} else {
-						$resp[] = "The <span class=\"$field_class\">$field</span> field needs to be shorter than $param characters";
-					}
-					break;
-				case 'validate_min_len':
-					if($param == 1) {
-						$resp[] = "The <span class=\"$field_class\">$field</span> field needs to be longer than $param character";
-					} else {
-						$resp[] = "The <span class=\"$field_class\">$field</span> field needs to be longer than $param characters";
-					}
-					break;
-				case 'validate_exact_len':
-					if($param == 1) {
-						$resp[] = "The <span class=\"$field_class\">$field</span> field needs to be exactly $param character in length";
-					} else {
-						$resp[] = "The <span class=\"$field_class\">$field</span> field needs to be exactly $param characters in length";
-					}
-					break;
-				case 'validate_alpha':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field may only contain alpha characters(a-z)";
-					break;
-				case 'validate_alpha_numeric':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field may only contain alpha-numeric characters";
-					break;
-				case 'validate_alpha_dash':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field may only contain alpha characters &amp; dashes";
-					break;
-				case 'validate_numeric':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field may only contain numeric characters";
-					break;
-				case 'validate_integer':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field may only contain a numeric value";
-					break;
-				case 'validate_boolean':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field may only contain a true or false value";
-					break;
-				case 'validate_float':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field may only contain a float value";
-					break;
-				case 'validate_valid_url':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field is required to be a valid URL";
-					break;
-				case 'validate_url_exists':
-					$resp[] = "The <span class=\"$field_class\">$field</span> URL does not exist";
-					break;
-				case 'validate_valid_ip':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain a valid IP address";
-					break;
-				case 'validate_valid_cc':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain a valid credit card number";
-					break;
-				case 'validate_valid_name':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain a valid human name";
-					break;
-				case 'validate_contains':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field needs to contain one of these values: ".implode(', ', $param);
-					break;
-				case 'validate_street_address':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a valid street address";
-					break;
-				case 'validate_date':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a valid date";
-					break;
-				case 'validate_min_numeric':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a numeric value, equal to, or higher than $param";
-					break;
-				case 'validate_max_numeric':
-					$resp[] = "The <span class=\"$field_class\">$field</span> field needs to be a numeric value, equal to, or lower than $param";
-					break;
-				default:
-					$resp[] = "The <span class=\"$field_class\">$field</span> field is invalid";				
-			}
-		}
-
-		if(!$convert_to_string) {
-			return $resp;
-		} else {
-			$buffer = '';
-			foreach($resp as $s) {
-				$buffer .= "<span class=\"$error_class\">$s</span>";
-			}
-			return $buffer;
-		}
+		return $this->errors;
 	}
 
 	/**
@@ -545,13 +403,13 @@ class GUMP
 				{
 					$input[$field] = $filter($input[$field]);
 				}
-				else if (isset(self::$filter_methods[$filter]))
+				else if (isset(static::$filter_methods[$filter]))
 				{
-					$input[$field] = call_user_func(self::$filter_methods[$filter], $input[$field], $params);
+					$input[$field] = call_user_func(static::$filter_methods[$filter], $input[$field], $params);
 				}
 				else
 				{
-					throw new Exception("Filter method '$filter' does not exist.");
+					throw new \Exception("Filter method '$filter' does not exist.");
 				}
 			}
 		}
@@ -560,39 +418,6 @@ class GUMP
 	}
 
 	// ** ------------------------- Filters --------------------------------------- ** //
-
-	/**
-	 * Replace noise words in a string (http://tax.cchgroup.com/help/Avoiding_noise_words_in_your_search.htm)
-	 *
-	 * Usage: '<index>' => 'noise_words'
-	 *
-	 * @access protected
-	 * @param  string $value
-	 * @param  array $params
-	 * @return string
-	 */
-	protected function filter_noise_words($value, $params = NULL)
-	{
-		$value = preg_replace('/\s\s+/u', chr(32),$value);
-
-		$value = " $value ";
-
-		$words = explode(',', self::$en_noise_words);
-
-		foreach($words as $word)
-		{
-			$word = trim($word);
-
-			$word = " $word "; // Normalize
-
-			if(stripos($value, $word) !== FALSE)
-			{
-				$value = str_ireplace($word, chr(32), $value);
-			}
-		}
-
-		return trim($value);
-	}
 
 	/**
 	 * Remove all known punctuation from a string
@@ -735,19 +560,6 @@ class GUMP
 		return filter_var($value, FILTER_SANITIZE_NUMBER_INT);
 	}
 
-	/**
-	 * Filter out all HTML tags except the defined basic tags
-	 *
-	 * @access protected
-	 * @param  string $value
-	 * @param  array $params
-	 * @return string
-	 */
-	protected function filter_basic_tags($value, $params = NULL)
-	{
-		return strip_tags($value, self::$basic_tags);
-	}
-	
 	/**
 	 * Convert the provided numeric value to a whole number
 	 *
@@ -1620,5 +1432,85 @@ class GUMP
 
 		return $value;
 	}
+
+ /**
+     * Determine if the provided phone number is valid
+     *
+     * Usage: '<index>' => 'valid_phone
+     *
+     * @access protected
+     * @param  string $field
+     * @param  array $input
+     * @return mixed
+     */
+    public function validate_valid_phone($field, $input, $param = NULL)
+    {
+        if(!isset($input[$field]) || empty($input[$field]))
+        {
+            return;
+        }
+
+        if(!preg_match("/^[0|\+][0-9]{2}[0-9\/\s]+$", $input[$field]) !== FALSE)
+        {
+            return array(
+                'field' => $field,
+                'value' => $input[$field],
+                'rule'  => __FUNCTION__,
+                'param' => $param
+            );
+        }
+    }
+
+    /**
+     * Determine if the provided value is valid against one of five currency rules
+     *
+     * Usage: '<index>' => 'valid_email'
+     *
+     * @access protected
+     * @param  string $field
+     * @param  array $input
+     * @return mixed
+     *
+     * @param int $param defines which currency rule is used for validation
+     * 0 => Currency amount (cents mandatory) Optional thousands separators; mandatory two-digit fraction (US)
+     * 1 => Currency amount (cents optional) Optional thousands separators; optional two-digit fraction (US)
+     * 2 => Currency amount (cents mandatory) Optional thousands separators; mandatory two-digit fraction (EU)
+     * 3 => Currency amount (cents optional) Optional thousands separators; optional two-digit fraction (EU)
+     * 4 => Currency amount US & EU (cents optional) Can use US-style 123,456.78 notation and European-style 123.456,78 notation. Optional thousands separators; optional two-digit fraction
+     */
+    public function validate_currency($field, $input, $param = 0)
+    {
+        if(!isset($input[$field]) || empty($input[$field]))
+        {
+            return;
+        }
+
+        switch($param){
+            case 0:
+                $regex = "^[+-]?[0-9]{1,3}(?:,?[0-9]{3})*\.[0-9]{2}$";
+                break;
+            case 1:
+                $regex = "^[+-]?[0-9]{1,3}(?:,?[0-9]{3})*(?:\.[0-9]{2})?$";
+                break;
+            case 2:
+                $regex = "^[+-]?[0-9]{1,3}(?:\.?[0-9]{3})*,[0-9]{2}$";
+                break;
+            case 3:
+                $regex = "^[+-]?[0-9]{1,3}(?:\.?[0-9]{3})*(?:,[0-9]{2})?$";
+                break;
+            case 4:
+                $regex = "^[+-]?[0-9]{1,3}(?:[0-9]*(?:[.,][0-9]{2})?|(?:,[0-9]{3})*(?:\.[0-9]{2})?|(?:\.[0-9]{3})*(?:,[0-9]{2})?)$";
+                break;
+        }
+        if(!preg_match($regex, $input[$field]) !== FALSE)
+        {
+            return array(
+                'field' => $field,
+                'value' => $input[$field],
+                'rule'  => __FUNCTION__,
+                'param' => $param
+            );
+        }
+    }
 
 } // EOC

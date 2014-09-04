@@ -1,7 +1,4 @@
-#!/usr/bin/php -q
 <?php
-
-require "../gump.class.php";
 
 $_FILES = array(
 	'attachments' => array(
@@ -26,7 +23,7 @@ for($i = 0; $i < $length; $i++) {
 		'size'     => $_FILES['attachments']['size'][$i],
 	);
 	
-	$validated = GUMP::is_valid($struct, array(
+	$validated = \Utils\GUMP::is_valid($struct, array(
 	    'name'     => 'required',
 	    'type'     => 'required',
 	    'tmp_name' => 'required',

@@ -33,7 +33,9 @@
     ],
     "license": "MIT",
     "homepage": "http://wixelhq.com/",
-    "autoload": {
-        "files": ["gump.class.php"]
-    }
+	"autoload": {
+		"psr-0": {
+			"Utils": "."
+		}
+	}
 }

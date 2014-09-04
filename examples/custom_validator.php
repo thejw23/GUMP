@@ -1,10 +1,7 @@
-#!/usr/bin/php -q
 <?php
 
-require "../gump.class.php";
-
 // Add the custom validator
-GUMP::add_validator("is_object", function($field, $input, $param = NULL) {
+\Utils\GUMP::add_validator("is_object", function($field, $input, $param = NULL) {
     return is_object($input[$field]);
 });
 
@@ -21,7 +18,7 @@ $rules = array(
 
 // METHOD 1 (Long):
 
-$validator = new GUMP();
+$validator = new \Utils\GUMP();
 
 $validated = $validator->validate(
 	$input_data, $rules
@@ -30,12 +27,12 @@ $validated = $validator->validate(
 if($validated === true) {
 	echo "Validation passed!";
 } else {
-	echo $validator->get_readable_errors(true);
+	echo $validator->get_errors();
 }
 
 // METHOD 2 (Short):
 
-$is_valid = GUMP::is_valid($input_data, $rules);
+$is_valid = \Utils\GUMP::is_valid($input_data, $rules);
 
 if($is_valid === true) {
 	echo "Validation passed!";
